@@ -30,15 +30,27 @@ def save_state_hdf5(state, path, step, t=None):
 
 def plot_1d(state, path, step):
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     r = state.grid
 
-    plt.figure()
-    plt.plot(r, state.T, label="T")
-    plt.plot(r, state.c, label="c")
-    plt.plot(r, state.p, label="p")
-    plt.legend()
-    plt.xlabel("r")
+    fig, axs = plt.subplots(1, 4, figsize=(16, 4))
+
+    axs[0].plot(r, state.T)
+    axs[0].set_title("T")
+
+    axs[1].plot(r, state.c)
+    axs[1].set_title("c")
+
+    axs[2].plot(r, state.p)
+    axs[2].set_title("p")
+
+    axs[3].plot(r, state.u)
+    axs[3].set_title("u")
+
+    for ax in axs:
+        ax.set_xlabel("r")
+
+    plt.tight_layout()
     plt.savefig(path / f"plot_{step}.png")
     plt.close()

@@ -3,3 +3,4 @@ data/
 plots/
 *.h5
 *.png
+__pycache__
