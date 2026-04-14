@@ -28,14 +28,8 @@ def solve_pressure(state, t):
     else:
         A[0,0] = 1.0
         b[0] = 0.0
-        
-    # Interior nodes
-    for i in range(1, nr - 1):
-        A[i, i-1] = 1.0 - dr / (2.0 * r[i])
-        A[i, i] = -2.0
-        A[i, i+1] = 1.0 + dr / (2.0 * r[i])
-        b[i] = 0.0
-        
+
+    
     # Outer BC
     if outer_bc is not None:
         if inner_bc is not None and inner_bc["type_bc"] == "neumann" and outer_bc["type_bc"] == "neumann":
@@ -58,6 +52,14 @@ def solve_pressure(state, t):
     else:
         A[-1,-1] = 1.0
         b[-1] = 0.0
-            
+
+    
+    # Interior nodes
+    for i in range(1, nr - 1):
+        A[i, i-1] = 1.0 - dr / (2.0 * r[i])
+        A[i, i] = -2.0
+        A[i, i+1] = 1.0 + dr / (2.0 * r[i])
+        b[i] = 0.0
+                    
     p = np.linalg.solve(A, b)
     state.p[:] = p

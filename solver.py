@@ -4,7 +4,7 @@ from pathlib import Path
 import io_utils as io
 
 
-class Solver:
+class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
     def __init__(self, sim_path, state, modules):
         self.base = Path(sim_path)
         self.state = state
@@ -35,7 +35,9 @@ class Solver:
             self.step(t)
 
             if n % self.save_interval == 0:
-                io.save_state_hdf5(self.state, self.base / "data" / "state.h5", n)
-                io.plot_1d(self.state, self.base / "plots", n)
+                # io.save_state_hdf5(self.state, self.base / "data" / "state.h5", n)
+                # io.plot_1d(self.state, self.base / "plots", n)
+
+                io.animate_live(self.state, n)
 
                 print(f"step {n}/{self.n_steps}")
