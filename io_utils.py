@@ -54,3 +54,30 @@ def plot_1d(state, path, step):
     plt.tight_layout()
     plt.savefig(path / f"plot_{step}.png")
     plt.close()
+
+def animate_live(state, step):
+    import matplotlib.pyplot as plt
+
+    if not hasattr(animate_live, "_fig"):
+        plt.ion()
+        fig, axs = plt.subplots(1, 4, figsize=(16, 4))
+        animate_live._fig = fig
+        animate_live._axs = axs
+        animate_live._lines = [ax.plot(state.grid, np.zeros_like(state.grid))[0] for ax in axs]
+        for ax, title in zip(axs, ["T", "c", "p", "u"]):
+            ax.set_xlabel("r")
+            ax.set_title(title)
+
+    lines = animate_live._lines
+    axs = animate_live._axs
+    fields = [state.T, state.c, state.p, state.u]
+
+    for line, ax, field in zip(lines, axs, fields):
+        line.set_xdata(state.grid)
+        line.set_ydata(field)
+        ax.relim()
+        ax.autoscale_view()
+
+    animate_live._fig.suptitle(f"step {step}")
+    animate_live._fig.canvas.draw()
+    animate_live._fig.canvas.flush_events()
