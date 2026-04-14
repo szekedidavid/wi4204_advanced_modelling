@@ -34,11 +34,21 @@ def plot_1d(state, path, step):
 
     r = state.grid
 
-    plt.figure()
-    plt.plot(r, state.T, label="T")
-    plt.plot(r, state.c, label="c")
-    plt.plot(r, state.p, label="p")
-    plt.legend()
-    plt.xlabel("r")
+    fig, axs = plt.subplots(3, 1, figsize=(8, 10), sharex=True)
+    
+    axs[0].plot(r, state.T, label="T", color="tab:red")
+    axs[0].set_ylabel("Temperature (°C)")
+    axs[0].legend()
+    
+    axs[1].plot(r, state.c, label="c", color="tab:blue")
+    axs[1].set_ylabel("Concentration")
+    axs[1].legend()
+    
+    axs[2].plot(r, state.p, label="p", color="tab:green")
+    axs[2].set_ylabel("Pressure (Pa)")
+    axs[2].set_xlabel("Radius r (m)")
+    axs[2].legend()
+    
+    plt.tight_layout()
     plt.savefig(path / f"plot_{step}.png")
     plt.close()
