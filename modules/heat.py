@@ -3,7 +3,7 @@ import numpy as np
 def step_heat(state, t, dt):
     T = state.T
     u = state.u
-    alpha = state.alpha
+    alpha_hat = state.alpha_hat
     gamma = state.gamma
 
     r = state.grid
@@ -34,6 +34,6 @@ def step_heat(state, t, dt):
         d2T = (T[i+1] - 2*T[i] + T[i-1]) / dr**2
         dT = (T[i] - T[i-1]) / dr if u[i] >= 0 else (T[i+1] - T[i]) / dr
 
-        T_new[i] = T[i] + dt * (alpha[i] * d2T - gamma[i] * u[i] * dT)
+        T_new[i] = T[i] + dt * (alpha_hat[i] * d2T - gamma[i] * u[i] * dT)
 
     state.T[:] = T_new

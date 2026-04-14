@@ -12,8 +12,9 @@ class Solver:
 
         self.cfg = io.load_config(self.base / "config.json")
 
-        self.dt = self.cfg["time"]["dt"]
-        self.t_end = self.cfg["time"]["t_end"]
+        self.t_c = self.cfg["scaling"]["t_c"]
+        self.dt = self.cfg["time"]["dt"] / self.t_c
+        self.t_end = self.cfg["time"]["t_end"] / self.t_c
         self.save_interval = self.cfg["time"]["save_interval"]
 
         self.n_steps = int(self.t_end / self.dt)

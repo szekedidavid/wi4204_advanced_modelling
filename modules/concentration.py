@@ -3,7 +3,11 @@ import numpy as np
 def step_concentration(state, t, dt):
     c = state.c
     u = state.u
-    D = state.D
+    D_hat = state.D_hat
+    phi = state.phi
+    
+    t_c = state.t_c
+    c_c = state.c_c
 
     r = state.grid
     dr = state.dr
@@ -33,6 +37,8 @@ def step_concentration(state, t, dt):
         d2c = (c[i+1] - 2*c[i] + c[i-1]) / dr**2
         dc = (c[i] - c[i-1]) / dr if u[i] >= 0 else (c[i+1] - c[i]) / dr
 
-        c_new[i] = c[i] + dt * (D[i] * d2c - u[i] * dc)
+        R = 0.0
+        
+        c_new[i] = c[i] + dt * (D_hat[i] * d2c - (1.0 / phi[i]) * u[i] * dc - (t_c / c_c) * R)
 
     state.c[:] = c_new
