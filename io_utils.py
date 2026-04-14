@@ -10,20 +10,68 @@ def load_config(path):
         return json.load(f)
 
 
-def save_state_hdf5(state, path, step, t=None):
-    path = Path(path)
+def save_inputs_json(state, cfg, base_path):
+    output_dir = Path(base_path) / "data"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 1. Dimensional Inputs
+    dim_data = {
+        "physics": cfg.get("physics", {}),
+        "scaling": cfg.get("scaling", {}),
+        "grid": cfg.get("grid", {}),
+        "flow": cfg.get("flow", {})
+    }
+    with open(output_dir / "inputs_dimensional.json", "w") as f:
+        json.dump(dim_data, f, indent=2)
+        
+    # 2. Dimensionless Inputs
+    dimless_data = {
+        "r_0": state.r_0,
+        "r_max": state.r_max,
+        "nr": state.nr,
+        "dr": state.dr,
+        "k_hat": state.k_hat,
+        "D_hat": state.D_hat,
+        "alpha_hat": state.alpha_hat,
+        "gamma": state.gamma,
+        "phi": state.phi,
+        "u_inj": state.u_inj,
+        "t_c": state.t_c,
+        "r_c": state.r_c
+    }
+    with open(output_dir / "inputs_dimensionless.json", "w") as f:
+        json.dump(dimless_data, f, cls=NumpyEncoder, indent=2)
+
+def save_outputs_hdf5(state, base_path, step, t=None, dimensionless=True):
+    filename = "outputs_dimensionless.h5" if dimensionless else "outputs_dimensional.h5"
+    path = Path(base_path) / "data" / filename
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    if dimensionless:
+        data_to_save = {
+            "T": state.T,
+            "c": state.c,
+            "p": state.p,
+            "u": state.u,
+            "r": state.grid
+        }
+    else:
+        # Rescale to physical units
+        data_to_save = {
+            "T": state.T * state.dT_scale + state.T_inj,
+            "c": state.c * state.c_c,
+            "p": state.p * state.mu[0] / state.t_c,
+            "u": state.u * state.r_c / state.t_c,
+            "r": state.grid * state.r_c
+        }
 
     with h5py.File(path, "a") as f:
         key = f"step_{step}"
         if key in f:
             del f[key]
         grp = f.create_group(key)
-
-        for k, v in state.__dict__.items():
-            if isinstance(v, np.ndarray):
-                grp.create_dataset(k, data=v)
-
+        for k, v in data_to_save.items():
+            grp.create_dataset(k, data=v)
         if t is not None:
             grp.attrs["t"] = t
 
@@ -94,3 +142,9 @@ def animate_live(state, step):
     animate_live._fig.suptitle(f"step {step}")
     animate_live._fig.canvas.draw()
     animate_live._fig.canvas.flush_events()
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)

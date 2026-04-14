@@ -4,3 +4,4 @@ plots/
 *.h5
 *.png
 __pycache__
+sims/0

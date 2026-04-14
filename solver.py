@@ -22,6 +22,9 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
         self.state.initialize(self.cfg["ic"])
         self.state.parse_bc(self.cfg["bc"])
 
+        # Save static input parameters (once at start)
+        io.save_inputs_json(self.state, self.cfg, self.base)
+
     def step(self, t):
         self.modules["pressure"](self.state, t)
         self.modules["velocity"](self.state, t)
@@ -35,8 +38,9 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
             self.step(t)
 
             if n % self.save_interval == 0:
-                # io.save_state_hdf5(self.state, self.base / "data" / "state.h5", n)
-                # io.plot_1d(self.state, self.base / "plots", n)
+                io.save_outputs_hdf5(self.state, self.base, n, t, dimensionless=True)
+                io.save_outputs_hdf5(self.state, self.base, n, t, dimensionless=False)
+                io.plot_1d(self.state, self.base / "plots", n)
 
                 io.animate_live(self.state, n)
 
