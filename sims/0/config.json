@@ -2,10 +2,10 @@
   "grid": {
     "r_0": 0.1,
     "r_max": 50.0,
-    "nr": 5000
+    "nr": 400
   },
   "time": {
-    "dt": 50.0,
+    "dt": 1.0,
     "t_end": 1000.0,
     "save_interval": 10
   },
@@ -22,66 +22,66 @@
     "c_c": 1.0
   },
   "flow": {
-  "u_inj": 3.17e-3
+    "u_inj": 3.17e-3
   },
-"ic": {
+  "ic": {
     "T": {
-        "type": "constant",
-        "value": 80.0
-    },
-    "c": {
-        "type": "constant",
-        "value": 0.2
-    },
-    "p": {
-        "type": "constant",
-        "value": 0.0
-    },
-    "u": {
-        "type": "constant",
-        "value": 0.0
-    }
-},
-"bc": {
-  "T": {
-    "inner": {
-      "type_bc": "dirichlet",
-      "type": "constant",
-      "value": 15.0
-    },
-    "outer": {
-      "type_bc": "dirichlet",
       "type": "constant",
       "value": 80.0
-    }
-  },
-  "c": {
-    "inner": {
-      "type_bc": "dirichlet",
-      "type": "constant",
-      "value": 0.8
     },
-    "outer": {
-      "type_bc": "neumann",
+    "c": {
+      "type": "constant",
+      "value": 0.2
+    },
+    "p": {
+      "type": "constant",
+      "value": 0.0
+    },
+    "u": {
       "type": "constant",
       "value": 0.0
     }
   },
-  "p": {
-    "inner": {
-      "type_bc": "neumann",
-      "type": "function",
-      "value": "p_inner"
+  "bc": {
+    "T": {
+      "inner": {
+        "type_bc": "dirichlet",
+        "type": "constant",
+        "value": 15.0
+      },
+      "outer": {
+        "type_bc": "dirichlet",
+        "type": "constant",
+        "value": 80.0
+      }
     },
-    "outer": {
-      "type_bc": "dirichlet",
-      "type": "constant",
-      "value": 0.0
+    "c": {
+      "inner": {
+        "type_bc": "dirichlet",
+        "type": "constant",
+        "value": 0.8
+      },
+      "outer": {
+        "type_bc": "neumann",
+        "type": "constant",
+        "value": 0.0
+      }
+    },
+    "p": {
+      "inner": {
+        "type_bc": "neumann",
+        "type": "function",
+        "value": "p_inner"
+      },
+      "outer": {
+        "type_bc": "dirichlet",
+        "type": "constant",
+        "value": 0.0
+      }
+    },
+    "u": {
+      "inner": null,
+      "outer": null
     }
-  },
-  "u": {
-    "inner": null,
-    "outer": null
   }
-}
 }

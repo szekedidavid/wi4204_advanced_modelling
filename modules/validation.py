@@ -3,11 +3,18 @@ import numpy as np
 def solve_analytical_pressure(state):
 
     r_bar = state.grid
-    R_bar = state.r_max
+    dr = state.dr
     u_inj_bar = state.u_inj
-    k_hat = np.mean(state.k_hat)
+    k_hat = state.k_hat
     
-    p_analytical = (u_inj_bar / k_hat) * np.log(R_bar / r_bar)
+    f = 1.0 / (r_bar * k_hat)
+
+    segment_integrals = 0.5 * (f[:-1] + f[1:]) * dr
+    integral_from_r0 = np.concatenate(([0], np.cumsum(segment_integrals)))
+    
+
+    total_integral = integral_from_r0[-1]
+    p_analytical = u_inj_bar * (total_integral - integral_from_r0)
     
     return p_analytical
 

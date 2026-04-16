@@ -54,11 +54,22 @@ def solve_pressure(state, t):
         b[-1] = 0.0
 
     
-    # Interior nodes
+
+    
+    k_hat = state.k_hat
+    
     for i in range(1, nr - 1):
-        A[i, i-1] = 1.0 - dr / (2.0 * r[i])
-        A[i, i] = -2.0
-        A[i, i+1] = 1.0 + dr / (2.0 * r[i])
+        r_plus  = r[i] + 0.5 * dr
+        r_minus = r[i] - 0.5 * dr
+        
+        k_plus  = 2 * k_hat[i] * k_hat[i+1] / (k_hat[i] + k_hat[i+1])
+        k_minus = 2 * k_hat[i] * k_hat[i-1] / (k_hat[i] + k_hat[i-1])
+        
+        # Coefficients
+        A[i, i-1] = (r_minus * k_minus) / (dr**2)
+        A[i, i+1] = (r_plus  * k_plus)  / (dr**2)
+        A[i, i]   = -(A[i, i-1] + A[i, i+1])
+        
         b[i] = 0.0
                     
     p = np.linalg.solve(A, b)
