@@ -3,16 +3,19 @@ import numpy as np
 from bc import p_inner
 
 class State:
+    
     def __init__(self, cfg):
+        # --- scaling / reference ---
         T_inj = cfg["bc"]["T"]["inner"]["value"]
         T_init = cfg["ic"]["T"]["value"]
         self.dT_scale = T_init - T_inj
         self.T_inj = T_inj
-        
+
         self.r_c = cfg["grid"]["r_0"]
         self.t_c = cfg["scaling"]["t_c"]
         self.c_c = cfg["scaling"]["c_c"]
 
+        # --- grid ---
         self.r_0 = cfg["grid"]["r_0"] / self.r_c
         self.r_max = cfg["grid"]["r_max"] / self.r_c
         self.nr = cfg["grid"]["nr"]
@@ -20,22 +23,42 @@ class State:
         self.dr = (self.r_max - self.r_0) / self.nr
         self.grid = np.linspace(self.r_0, self.r_max, self.nr)
 
+        # --- state variables ---
         self.p = np.zeros(self.nr)
         self.u = np.zeros(self.nr)
-
         self.T = np.zeros(self.nr)
         self.c = np.zeros(self.nr)
 
+        # --- primary physics ---
         self.phi = np.ones(self.nr) * cfg["physics"]["phi"]
-        
+
         self.k_hat = np.ones(self.nr) * (cfg["physics"]["k"] / self.r_c**2)
         self.D_hat = np.ones(self.nr) * (cfg["physics"]["D"] * self.t_c / self.r_c**2)
-        self.alpha_hat = np.ones(self.nr) * (cfg["physics"]["alpha"] * self.t_c / self.r_c**2)
-        self.gamma = np.ones(self.nr) * cfg["physics"]["gamma"]
         self.mu = np.ones(self.nr) * cfg["physics"]["mu"]
 
+        # --- material properties ---
+        mat = cfg["material"]
+
+        c_w = mat["c_w"]
+        rho_w = mat["rho_w"]
+        c_s = mat["c_s"]
+        rho_s = mat["rho_s"]
+        lambda_w = mat["lambda_w"]
+        lambda_s = mat["lambda_s"]
+
+        cw_rhow = c_w * rho_w
+        cs_rhos = c_s * rho_s
+
+        denom = cw_rhow * self.phi + cs_rhos * (1 - self.phi)
+
+        # --- derived coefficients ---
+        self.gamma = cw_rhow / denom
+        self.alpha_hat = (lambda_w + lambda_s) / denom * (self.t_c / self.r_c**2)
+
+        # --- flow ---
         self.u_inj = cfg["flow"]["u_inj"] * (self.t_c / self.r_c)
 
+        # --- boundary conditions container ---
         self.bc = {}
 
     def initialize(self, ic_cfg):
