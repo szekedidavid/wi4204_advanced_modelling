@@ -9,10 +9,14 @@ def main(sim_id=0):
     base = Path("sims") / str(sim_id)
 
     modules = {
-        "pressure": solve_pressure,
-        "velocity": compute_velocity,
-        "heat": step_heat,
-        "concentration": step_concentration,
+        "update_k":         update_k,
+        "update_transport": update_transport,
+        "update_reactions": update_reactions,
+        "pressure":         solve_pressure,
+        "velocity":         compute_velocity,
+        "heat":             step_heat,
+        "concentration":    step_concentration,
+        "porosity":         step_porosity,
     }
 
     state = State(
@@ -21,15 +25,6 @@ def main(sim_id=0):
 
     solver = Solver(base, state, modules)
     solver.run()
-
-    # --- Post-Processing: Analytical Validation ---
-    print("\nRunning Analytical Validation...")
-    from modules import solve_analytical_pressure
-    import io_utils as io
-    
-    p_analytical = solve_analytical_pressure(state)
-    io.plot_comparison(state, p_analytical, "p", base / "validation_pressure.png")
-    print(f"Validation plot saved to: {base / 'validation_pressure.png'}")
 
 
 if __name__ == "__main__":

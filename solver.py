@@ -1,5 +1,3 @@
-# solver.py
-
 from pathlib import Path
 import io_utils as io
 
@@ -22,14 +20,17 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
         self.state.initialize(self.cfg["ic"])
         self.state.parse_bc(self.cfg["bc"])
 
-        # Save static input parameters (once at start)
         io.save_inputs_json(self.state, self.cfg, self.base)
 
     def step(self, t):
+        self.modules["update_k"](self.state, t)
+        self.modules["update_transport"](self.state, t)
+        self.modules["update_reactions"](self.state, t)
         self.modules["pressure"](self.state, t)
         self.modules["velocity"](self.state, t)
         self.modules["heat"](self.state, t, self.dt)
         self.modules["concentration"](self.state, t, self.dt)
+        self.modules["porosity"](self.state, t, self.dt)
 
     def run(self):
         for n in range(self.n_steps):

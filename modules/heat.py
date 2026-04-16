@@ -1,17 +1,17 @@
 import numpy as np
 
+
 def step_heat(state, t, dt):
-    T = state.T
-    u = state.u
+    T         = state.T
+    u         = state.u
     alpha_hat = state.alpha_hat
-    gamma = state.gamma
+    gamma     = state.gamma
+    r         = state.grid
+    dr        = state.dr
+    nr        = state.nr
 
-    r = state.grid
-    dr = state.dr
-    nr = state.nr
-
-    Pe = np.max(np.abs(u) * dr / alpha_hat)
-    CFL_adv = np.max(np.abs(u) * dt / dr)
+    Pe       = np.max(np.abs(u) * dr / alpha_hat)
+    CFL_adv  = np.max(np.abs(u) * dt / dr)
     CFL_diff = np.max(alpha_hat * dt / dr**2)
 
     if Pe > 2:
@@ -21,33 +21,34 @@ def step_heat(state, t, dt):
     if CFL_diff > 0.5:
         print(f"[T] CFL diffusion warning: {CFL_diff:.3f} > 0.5")
 
+    # --- FVM face radii ---
+    r_plus  = r + 0.5 * dr
+    r_minus = r - 0.5 * dr
+
+    # harmonic mean diffusivity at faces
+    a_plus = 2 * alpha_hat[:-1] * alpha_hat[1:] / (alpha_hat[:-1] + alpha_hat[1:])  # (nr-1,)
+
     T_new = T.copy()
 
-    for i in range(nr):
-        if i == 0:
-            bc = state.bc["T"]["inner"]
-            if bc["type_bc"] == "dirichlet":
-                T_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dTdr = bc["value"](r[i], t, state)
-                T_new[i] = T[i+1] - dTdr * dr
-            continue
+    # --- interior cells i = 1 .. nr-2 ---
+    i = np.arange(1, nr - 1)
 
-        if i == nr - 1:
-            bc = state.bc["T"]["outer"]
-            if bc["type_bc"] == "dirichlet":
-                T_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dTdr = bc["value"](r[i], t, state)
-                T_new[i] = T[i-1] + dTdr * dr
-            continue
+    flux_diff = (  r_plus[i]  * a_plus[i]   * (T[i+1] - T[i])
+                 - r_minus[i] * a_plus[i-1] * (T[i]   - T[i-1])
+                ) / (r[i] * dr**2)
 
-        d2T = (T[i+1] - 2*T[i] + T[i-1]) / dr**2
-        dT_diff = (T[i+1] - T[i-1]) / (2*dr)
-        dT_adv = (T[i] - T[i-1]) / dr if u[i] >= 0 else (T[i+1] - T[i]) / dr
+    u_f_plus  = 0.5 * (u[i] + u[i+1])
+    u_f_minus = 0.5 * (u[i] + u[i-1])
 
-        laplacian = d2T + (1/r[i]) * dT_diff
+    adv_plus  = r_plus[i]  * np.where(u_f_plus  >= 0, T[i],   T[i+1]) * u_f_plus
+    adv_minus = r_minus[i] * np.where(u_f_minus >= 0, T[i-1], T[i])   * u_f_minus
 
-        T_new[i] = T[i] + dt * (alpha_hat[i] * laplacian - gamma[i] * u[i] * dT_adv)
+    flux_adv = -gamma[i] * (adv_plus - adv_minus) / (r[i] * dr)
+
+    T_new[i] = T[i] + dt * (flux_diff + flux_adv)
+
+    # --- BCs: Dirichlet inner and outer ---
+    T_new[0]  = state.T_inner
+    T_new[-1] = state.T_outer
 
     state.T[:] = T_new

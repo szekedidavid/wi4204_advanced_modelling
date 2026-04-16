@@ -1,131 +1,73 @@
 import numpy as np
-
-from bc import p_inner
+from physics.species import load_species
 
 class State:
-    
-    def __init__(self, cfg):
-        # --- scaling / reference ---
-        T_inj = cfg["bc"]["T"]["inner"]["value"]
-        T_init = cfg["ic"]["T"]["value"]
-        self.dT_scale = T_init - T_inj
-        self.T_inj = T_inj
 
+    def __init__(self, cfg):
+        # --- scaling ---
         self.r_c = cfg["grid"]["r_0"]
         self.t_c = cfg["scaling"]["t_c"]
         self.c_c = cfg["scaling"]["c_c"]
 
         # --- grid ---
-        self.r_0 = cfg["grid"]["r_0"] / self.r_c
+        self.r_0   = cfg["grid"]["r_0"]  / self.r_c
         self.r_max = cfg["grid"]["r_max"] / self.r_c
-        self.nr = cfg["grid"]["nr"]
+        self.nr    = cfg["grid"]["nr"]
 
-        self.dr = (self.r_max - self.r_0) / (self.nr - 1)
+        self.dr   = (self.r_max - self.r_0) / (self.nr - 1)
         self.grid = np.linspace(self.r_0, self.r_max, self.nr)
+
+        # --- temperature BCs (Kelvin) ---
+        self.T_inner = cfg["T"]["inner"] + 273.15
+        self.T_outer = cfg["T"]["outer"] + 273.15
+        T_0          = cfg["T"]["T_0"]   + 273.15
 
         # --- state variables ---
         self.p = np.zeros(self.nr)
         self.u = np.zeros(self.nr)
-        self.T = np.zeros(self.nr)
-        self.c = np.zeros(self.nr)
+        self.T = np.ones(self.nr) * T_0
+        self.c = np.ones(self.nr) * cfg["species"][0]["c_0"] / self.c_c  # TODO: (n_species, nr)
+        self.R = np.zeros(self.nr)                                         # TODO: (n_species, nr)
 
-        # --- primary physics ---
-        self.phi = np.ones(self.nr) * cfg["physics"]["phi"]
+        # --- species (single for now) ---
+        sp = cfg["species"][0]
+        self.c_0   = sp["c_0"]
+        self.c_inj = sp["c_inj"]
 
-        self.k_hat = np.ones(self.nr) * (cfg["physics"]["k"] / self.r_c**2)
+        # --- porosity ---
+        self.phi_0 = cfg["physics"]["phi_0"]
+        self.k_0   = cfg["physics"]["k_0"]
+        self.phi   = np.ones(self.nr) * self.phi_0
+
+        # --- transport coefficients (owned by physics modules) ---
+        self.k_hat     = np.zeros(self.nr)
+        self.alpha_hat = np.zeros(self.nr)
+        self.gamma     = np.zeros(self.nr)
+
+        # --- diffusivity and viscosity (prescribed, constant) ---
         self.D_hat = np.ones(self.nr) * (cfg["physics"]["D"] * self.t_c / self.r_c**2)
-        self.mu = np.ones(self.nr) * cfg["physics"]["mu"]
+        self.mu    = np.ones(self.nr) * cfg["physics"]["mu"]
 
-        # --- material properties ---
+        # --- material constants (used by physics/properties) ---
         mat = cfg["material"]
-
-        c_w = mat["c_w"]
-        rho_w = mat["rho_w"]
-        c_s = mat["c_s"]
-        rho_s = mat["rho_s"]
-        lambda_w = mat["lambda_w"]
-        lambda_s = mat["lambda_s"]
-
-        cw_rhow = c_w * rho_w
-        cs_rhos = c_s * rho_s
-
-        denom = cw_rhow * self.phi + cs_rhos * (1 - self.phi)
-
-        # --- derived coefficients ---
-        self.gamma = cw_rhow / denom
-        self.alpha_hat = (lambda_w + lambda_s) / denom * (self.t_c / self.r_c**2)
+        self.c_w      = mat["c_w"]
+        self.rho_w    = mat["rho_w"]
+        self.c_s      = mat["c_s"]
+        self.rho_s    = mat["rho_s"]
+        self.lambda_w = mat["lambda_w"]
+        self.lambda_s = mat["lambda_s"]
 
         # --- flow ---
         self.u_inj = cfg["flow"]["u_inj"] * (self.t_c / self.r_c)
 
-        # --- boundary conditions container ---
-        self.bc = {}
-
-    def initialize(self, ic_cfg):
-        def evaluate(spec):
-            if isinstance(spec, (int, float)):
-                return np.ones(self.nr) * spec
-
-            if isinstance(spec, dict):
-                if spec["type"] == "constant":
-                    return np.ones(self.nr) * spec["value"]
-
-                if spec["type"] == "function":
-                    func = eval(spec["expr"])
-                    return func(self.grid)
-
-            raise ValueError("Invalid IC specification")
-
-        if "T" in ic_cfg:
-            self.T[:] = (evaluate(ic_cfg["T"]) - self.T_inj) / self.dT_scale
-        if "c" in ic_cfg:
-            self.c[:] = evaluate(ic_cfg["c"]) / self.c_c
-        if "p" in ic_cfg:
-            self.p[:] = evaluate(ic_cfg["p"]) * (self.t_c / self.mu[0])
-        if "u" in ic_cfg:
-            self.u[:] = evaluate(ic_cfg["u"]) * (self.t_c / self.r_c)
-
-    def parse_bc(self, bc_cfg):
-        def make(spec, field_name):
-            if spec is None:
-                return None
-
-            if spec["type"] == "constant":
-                val = spec["value"]
-                if field_name == "T":
-                    val = (val - self.T_inj) / self.dT_scale
-                elif field_name == "c":
-                    val = val / self.c_c
-                elif field_name == "p":
-                    val = val * self.t_c / self.mu[0]
-                elif field_name == "u":
-                    val = val * self.t_c / self.r_c
-                return lambda r, t, state: val
-
-            if spec["type"] == "function":
-                func = eval(spec["value"])
-                return func
-
-            raise ValueError("Invalid BC specification")
-
-        self.bc = {}
-
-        for field, sides in bc_cfg.items():
-            self.bc[field] = {}
-            for side, spec in sides.items():
-                if spec is None:
-                    self.bc[field][side] = None
-                else:
-                    self.bc[field][side] = {
-                        "type_bc": spec["type_bc"],
-                        "value": make(spec, field)
-                    }
+        # --- species parameters (loaded from CSV) ---
+        self.species = load_species(cfg["species"][0]["name"])
 
     def copy(self):
-            new = State.__new__(State)
-            for k, v in self.__dict__.items():
-                if isinstance(v, np.ndarray):
-                    setattr(new, k, v.copy())
-                else:
-                    setattr(new, k, v)
-            return new
+        new = State.__new__(State)
+        for k, v in self.__dict__.items():
+            if isinstance(v, np.ndarray):
+                setattr(new, k, v.copy())
+            else:
+                setattr(new, k, v)
+        return new

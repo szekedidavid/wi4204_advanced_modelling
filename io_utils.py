@@ -147,7 +147,7 @@ def plot_comparison(state, analytical, field_name, path):
     """
     Plots a dashboard comparing numerical and analytical solutions in dimensionless space.
     """
-    from modules.validation import calculate_errors
+    from tests.verification.validation import calculate_errors
     
     numerical = getattr(state, field_name)
     r_phys = state.grid * state.r_c # Still plot vs physical radius for intuition
