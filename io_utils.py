@@ -143,6 +143,37 @@ def animate_live(state, step):
     animate_live._fig.canvas.draw()
     animate_live._fig.canvas.flush_events()
 
+def plot_comparison(state, analytical, field_name, path):
+    """
+    Plots a dashboard comparing numerical and analytical solutions in dimensionless space.
+    """
+    from modules.validation import calculate_errors
+    
+    numerical = getattr(state, field_name)
+    r_phys = state.grid * state.r_c # Still plot vs physical radius for intuition
+    
+    errors = calculate_errors(numerical, analytical)
+    
+    fig, axs = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Profiles
+    axs[0].plot(r_phys, analytical, '--', label="Analytical (Exact)", color="black", alpha=0.7)
+    axs[0].plot(r_phys, numerical, label="Numerical (Solver)", color="tab:red", alpha=0.8)
+    axs[0].set_xlabel("Radius r (m)")
+    axs[0].set_ylabel(f"Value")
+    axs[0].legend()
+    
+    # Right: Residual
+    axs[1].plot(r_phys, errors["residual"], color="tab:purple")
+    axs[1].axhline(0, color='black', linestyle=':', alpha=0.5)
+    axs[1].set_title(f"L2 Error: {errors['l2']:.2e}")
+    axs[1].set_xlabel("Radius r (m)")
+    axs[1].set_ylabel("Error")
+    
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):

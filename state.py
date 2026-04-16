@@ -20,7 +20,7 @@ class State:
         self.r_max = cfg["grid"]["r_max"] / self.r_c
         self.nr = cfg["grid"]["nr"]
 
-        self.dr = (self.r_max - self.r_0) / self.nr
+        self.dr = (self.r_max - self.r_0) / (self.nr - 1)
         self.grid = np.linspace(self.r_0, self.r_max, self.nr)
 
         # --- state variables ---
