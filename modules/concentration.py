@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
 
 def step_concentration(state, t, dt):
     c = state.c
@@ -12,47 +14,42 @@ def step_concentration(state, t, dt):
     r = state.grid
     dr = state.dr
     nr = state.nr
+    
+    v_eff = u / phi
 
-    Pe = np.max(np.abs(u) * dr / D_hat)
-    CFL_adv = np.max(np.abs(u) * dt / dr)
-    CFL_diff = np.max(D_hat * dt / dr**2)
+    D_dr2 = D_hat / dr**2
+    D_2rdr = D_hat / (2.0 * r * dr)
+    
+    adv_pos = np.maximum(v_eff, 0.0) / dr
+    adv_neg = np.minimum(v_eff, 0.0) / dr
 
-    if Pe > 2:
-        print(f"[c] Peclet warning: Pe = {Pe:.3f} > 2")
-    if CFL_adv > 1:
-        print(f"[c] CFL advection warning: {CFL_adv:.3f} > 1")
-    if CFL_diff > 0.5:
-        print(f"[c] CFL diffusion warning: {CFL_diff:.3f} > 0.5")
+    A_low = -dt * (D_dr2 - D_2rdr + adv_pos)
+    A_mid = 1.0 + dt * (2.0 * D_dr2 + adv_pos - adv_neg)
+    A_up = -dt * (D_dr2 + D_2rdr - adv_neg)
+    
+    b = c.copy()
 
-    c_new = c.copy()
+    bc_inner = state.bc["c"]["inner"]
+    if bc_inner["type_bc"] == "dirichlet":
+        A_mid[0] = 1.0
+        A_up[0] = 0.0
+        b[0] = bc_inner["value"](r[0], t, state)
+    elif bc_inner["type_bc"] == "neumann":
+        A_mid[0] = -1.0
+        A_up[0] = 1.0
+        b[0] = bc_inner["value"](r[0], t, state) * dr
 
-    for i in range(nr):
-        if i == 0:
-            bc = state.bc["c"]["inner"]
-            if bc["type_bc"] == "dirichlet":
-                c_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dcdr = bc["value"](r[i], t, state)
-                c_new[i] = c[i+1] - dcdr * dr
-            continue
+    bc_outer = state.bc["c"]["outer"]
+    if bc_outer["type_bc"] == "dirichlet":
+        A_mid[-1] = 1.0
+        A_low[-1] = 0.0
+        b[-1] = bc_outer["value"](r[-1], t, state)
+    elif bc_outer["type_bc"] == "neumann":
+        A_mid[-1] = 1.0
+        A_low[-1] = -1.0
+        b[-1] = bc_outer["value"](r[-1], t, state) * dr
 
-        if i == nr - 1:
-            bc = state.bc["c"]["outer"]
-            if bc["type_bc"] == "dirichlet":
-                c_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dcdr = bc["value"](r[i], t, state)
-                c_new[i] = c[i-1] + dcdr * dr
-            continue
-
-        d2c = (c[i+1] - 2*c[i] + c[i-1]) / dr**2
-        dc_diff = (c[i+1] - c[i-1]) / (2*dr)
-        dc_adv = (c[i] - c[i-1]) / dr if u[i] >= 0 else (c[i+1] - c[i]) / dr
-
-        laplacian = d2c + (1/r[i]) * dc_diff
-
-        R = 0.0
-
-        c_new[i] = c[i] + dt * (D_hat[i] * laplacian - (1.0 / phi[i]) * u[i] * dc_adv - (t_c / c_c) * R)
-
+    A = diags([A_low[1:], A_mid, A_up[:-1]], [-1, 0, 1], format='csr')
+    
+    c_new = spsolve(A, b)
     state.c[:] = c_new

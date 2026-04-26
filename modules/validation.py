@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.special import erfc
+
 
 def solve_analytical_pressure(state):
 
@@ -38,3 +40,35 @@ def calculate_errors(numerical, analytical):
         "residual": residual,
         "status": "SUCCESS"
     }
+
+def solve_analytical_transport(state, field_name, t):
+
+    r_bar = state.grid
+    r_0 = state.r_0
+    
+    if field_name == "c":
+        D_eff = state.D_hat[0]
+        A = state.u_inj * r_0 / state.phi[0]
+        front = np.sqrt(r_0**2 + 2.0 * A * t)
+        
+        val_0 = state.c[-1]
+        val_inj = state.bc["c"]["inner"]["value"](0,0,0) if state.bc["c"]["inner"] else 1.0
+        
+        sol = val_0 + 0.5 * (val_inj - val_0) * erfc((r_bar - front) / np.maximum(np.sqrt(4.0 * D_eff * t), 1e-12))
+        return sol
+
+    elif field_name == "T":
+        alpha_eff = state.alpha_hat[0]
+        gamma = state.gamma[0]
+        
+        A_T = gamma * state.u_inj * r_0
+        front_T = np.sqrt(r_0**2 + 2.0 * A_T * t)
+        
+        val_0 = state.T[-1]
+        val_inj = state.bc["T"]["inner"]["value"](0,0,0) if state.bc["T"]["inner"] else 1.0
+        
+        sol = val_0 + 0.5 * (val_inj - val_0) * erfc((r_bar - front_T) / np.maximum(np.sqrt(4.0 * alpha_eff * t), 1e-12))
+        return sol
+    
+    else:
+        raise ValueError(f"Unknown field: {field_name}")

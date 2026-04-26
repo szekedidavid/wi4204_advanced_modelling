@@ -145,34 +145,101 @@ def animate_live(state, step):
 
 def plot_comparison(state, analytical, field_name, path):
     """
-    Plots a dashboard comparing numerical and analytical solutions in dimensionless space.
+    Plots a dashboard comparing numerical and analytical solutions in physical space.
     """
     from modules.validation import calculate_errors
     
-    numerical = getattr(state, field_name)
-    r_phys = state.grid * state.r_c # Still plot vs physical radius for intuition
+    numerical_dimless = getattr(state, field_name)
+    analytical_dimless = analytical
+    r_phys = state.grid * state.r_c
+    
+    # Rescale for plot
+    if field_name == "p":
+        numerical = numerical_dimless * state.mu[0] / state.t_c
+        analytical = analytical_dimless * state.mu[0] / state.t_c
+        unit = "Pa"
+    else:
+        numerical = numerical_dimless
+        analytical = analytical_dimless
+        unit = "dimless"
     
     errors = calculate_errors(numerical, analytical)
     
     fig, axs = plt.subplots(1, 2, figsize=(14, 5))
     
-    # Left: Profiles
     axs[0].plot(r_phys, analytical, '--', label="Analytical (Exact)", color="black", alpha=0.7)
     axs[0].plot(r_phys, numerical, label="Numerical (Solver)", color="tab:red", alpha=0.8)
     axs[0].set_xlabel("Radius r (m)")
-    axs[0].set_ylabel(f"Value")
+    axs[0].set_ylabel(f"Value ({unit})")
     axs[0].legend()
     
-    # Right: Residual
     axs[1].plot(r_phys, errors["residual"], color="tab:purple")
     axs[1].axhline(0, color='black', linestyle=':', alpha=0.5)
     axs[1].set_title(f"L2 Error: {errors['l2']:.2e}")
     axs[1].set_xlabel("Radius r (m)")
-    axs[1].set_ylabel("Error")
+    axs[1].set_ylabel(f"Error ({unit})")
     
     plt.tight_layout()
     plt.savefig(path)
     plt.close()
+
+def plot_evolution(state, base_path, steps=[0, -1]):
+    """
+    Creates a plot comparing specific timesteps in PHYSICAL units.
+    """
+    path = Path(base_path) / "data" / "outputs_dimensionless.h5"
+    if not path.exists():
+        return
+        
+    with h5py.File(path, "r") as f:
+        available_steps = sorted(list(f.keys()), key=lambda x: int(x.split('_')[1]) if '_' in x else 0)
+        
+        target_keys = []
+        for s in steps:
+            key = f"step_{s}"
+            if key in available_steps:
+                target_keys.append(key)
+            elif isinstance(s, int) and s < 0 and abs(s) <= len(available_steps):
+                target_keys.append(available_steps[s])
+        
+        if not target_keys:
+            return
+
+        fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+        linestyles = ['--', '-', ':']
+
+        for i, key in enumerate(target_keys):
+            data = f[key]
+            r_bar = data["r"][:]
+            T_bar = data["T"][:]
+            c_bar = data["c"][:]
+            
+            # Rescale to physical
+            r_phys = r_bar * state.r_c
+            T_phys = T_bar * state.dT_scale + state.T_inj
+            c_phys = c_bar * state.c_c
+            
+            t_dimless = f[key].attrs.get('t', 0.0)
+            t_phys = t_dimless * state.t_c
+            label = f"t = {t_phys:.0f}s"
+            
+            axs[0].plot(r_phys, T_phys, label=label, alpha=0.5 + 0.5*(i/len(target_keys)), linestyle=linestyles[i % 3], color="tab:red")
+            axs[1].plot(r_phys, c_phys, label=label, alpha=0.5 + 0.5*(i/len(target_keys)), linestyle=linestyles[i % 3], color="tab:blue")
+
+        axs[0].set_title("Temperature Evolution")
+        axs[0].set_ylabel("Temperature (°C)")
+        
+        axs[1].set_title("Concentration Evolution")
+        axs[1].set_ylabel("Concentration")
+        
+        for ax in axs:
+            ax.set_xlabel("Radius r (m)")
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig(Path(base_path) / "front_evolution.png")
+        plt.close()
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):

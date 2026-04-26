@@ -1,7 +1,9 @@
 import numpy as np
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
 
 def step_heat(state, t, dt):
-    T = state.T
+    T_field = state.T
     u = state.u
     alpha_hat = state.alpha_hat
     gamma = state.gamma
@@ -9,45 +11,42 @@ def step_heat(state, t, dt):
     r = state.grid
     dr = state.dr
     nr = state.nr
+    
+    v_eff = u * gamma
 
-    Pe = np.max(np.abs(u) * dr / alpha_hat)
-    CFL_adv = np.max(np.abs(u) * dt / dr)
-    CFL_diff = np.max(alpha_hat * dt / dr**2)
+    D_dr2 = alpha_hat / dr**2
+    D_2rdr = alpha_hat / (2.0 * r * dr)
+    
+    adv_pos = np.maximum(v_eff, 0.0) / dr
+    adv_neg = np.minimum(v_eff, 0.0) / dr
 
-    if Pe > 2:
-        print(f"[T] Peclet warning: Pe = {Pe:.3f} > 2")
-    if CFL_adv > 1:
-        print(f"[T] CFL advection warning: {CFL_adv:.3f} > 1")
-    if CFL_diff > 0.5:
-        print(f"[T] CFL diffusion warning: {CFL_diff:.3f} > 0.5")
+    A_low = -dt * (D_dr2 - D_2rdr + adv_pos)
+    A_mid = 1.0 + dt * (2.0 * D_dr2 + adv_pos - adv_neg)
+    A_up = -dt * (D_dr2 + D_2rdr - adv_neg)
+    
+    b = T_field.copy()
 
-    T_new = T.copy()
+    bc_inner = state.bc["T"]["inner"]
+    if bc_inner["type_bc"] == "dirichlet":
+        A_mid[0] = 1.0
+        A_up[0] = 0.0
+        b[0] = bc_inner["value"](r[0], t, state)
+    elif bc_inner["type_bc"] == "neumann":
+        A_mid[0] = -1.0
+        A_up[0] = 1.0
+        b[0] = bc_inner["value"](r[0], t, state) * dr
 
-    for i in range(nr):
-        if i == 0:
-            bc = state.bc["T"]["inner"]
-            if bc["type_bc"] == "dirichlet":
-                T_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dTdr = bc["value"](r[i], t, state)
-                T_new[i] = T[i+1] - dTdr * dr
-            continue
+    bc_outer = state.bc["T"]["outer"]
+    if bc_outer["type_bc"] == "dirichlet":
+        A_mid[-1] = 1.0
+        A_low[-1] = 0.0
+        b[-1] = bc_outer["value"](r[-1], t, state)
+    elif bc_outer["type_bc"] == "neumann":
+        A_mid[-1] = 1.0
+        A_low[-1] = -1.0
+        b[-1] = bc_outer["value"](r[-1], t, state) * dr
 
-        if i == nr - 1:
-            bc = state.bc["T"]["outer"]
-            if bc["type_bc"] == "dirichlet":
-                T_new[i] = bc["value"](r[i], t, state)
-            elif bc["type_bc"] == "neumann":
-                dTdr = bc["value"](r[i], t, state)
-                T_new[i] = T[i-1] + dTdr * dr
-            continue
-
-        d2T = (T[i+1] - 2*T[i] + T[i-1]) / dr**2
-        dT_diff = (T[i+1] - T[i-1]) / (2*dr)
-        dT_adv = (T[i] - T[i-1]) / dr if u[i] >= 0 else (T[i+1] - T[i]) / dr
-
-        laplacian = d2T + (1/r[i]) * dT_diff
-
-        T_new[i] = T[i] + dt * (alpha_hat[i] * laplacian - gamma[i] * u[i] * dT_adv)
-
+    A = diags([A_low[1:], A_mid, A_up[:-1]], [-1, 0, 1], format='csr')
+    
+    T_new = spsolve(A, b)
     state.T[:] = T_new
