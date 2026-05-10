@@ -5,7 +5,7 @@ class State:
 
     def __init__(self, cfg):
         # --- scaling ---
-        self.r_c = cfg["grid"]["r_0"]
+        self.r_c = 1 # cfg["grid"]["r_0"]
         self.t_c = cfg["scaling"]["t_c"]
         self.c_c = cfg["scaling"]["c_c"]
 

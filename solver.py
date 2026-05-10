@@ -3,7 +3,7 @@ import io_utils as io
 
 
 class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
-    def __init__(self, sim_path, state, modules):
+    def __init__(self, sim_path, state, modules):  # TODO compute Da_I and Da_II at startup
         self.base = Path(sim_path)
         self.state = state
         self.modules = modules
@@ -17,8 +17,9 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
 
         self.n_steps = int(self.t_end / self.dt)
 
-        self.state.initialize(self.cfg["ic"])
-        self.state.parse_bc(self.cfg["bc"])
+        # populate k_hat, alpha_hat, gamma before saving inputs
+        self.modules["update_k"](self.state, 0)
+        self.modules["update_transport"](self.state, 0)
 
         io.save_inputs_json(self.state, self.cfg, self.base)
 
@@ -33,6 +34,8 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
         self.modules["porosity"](self.state, t, self.dt)
 
     def run(self):
+        io.clear_outputs(self.base)
+
         for n in range(self.n_steps):
             t = n * self.dt
 
@@ -42,7 +45,5 @@ class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
                 io.save_outputs_hdf5(self.state, self.base, n, t, dimensionless=True)
                 io.save_outputs_hdf5(self.state, self.base, n, t, dimensionless=False)
                 io.plot_1d(self.state, self.base / "plots", n)
-
-                io.animate_live(self.state, n)
-
+                # io.animate_live(self.state, n)
                 print(f"step {n}/{self.n_steps}")

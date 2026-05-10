@@ -11,6 +11,6 @@ def step_porosity(state, t, dt):
     """
     V_m = state.species["molar_volume"]
 
-    dphi_dt = -V_m * state.R
+    dphi_dt = - 1e6 * V_m * state.phi * state.R  # TODO dont forget :3
 
     state.phi[:] = state.phi + dt * dphi_dt
