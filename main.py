@@ -5,7 +5,7 @@ from state import State
 from modules import *
 
 
-def main(sim_id=0):
+def main(sim_id=1):
     base = Path("sims") / str(sim_id)
     
 

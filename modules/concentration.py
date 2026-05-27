@@ -27,8 +27,9 @@ def step_concentration(state, t, dt):
     r_minus = r - 0.5 * dr
 
     phiD = phi * D_hat
-    phiD_face = 2 * phiD[:-1] * phiD[1:] / (phiD[:-1] + phiD[1:])
-
+    denom = phiD[:-1] + phiD[1:]
+    phiD_face = np.where(denom > 0, 2 * phiD[:-1] * phiD[1:] / denom, 0.0)
+    
     flux_diff = (r_plus[i]  * phiD_face[i]   * (c[i+1] - c[i])
                - r_minus[i] * phiD_face[i-1] * (c[i]   - c[i-1])) / (r[i] * dr**2)
     flux_adv  = u[i] * (c[i] - c[i-1]) / dr

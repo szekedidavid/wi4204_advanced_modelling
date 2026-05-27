@@ -5,9 +5,9 @@
     "nr": 400
   },
   "time": {
-    "dt": 0.5,
-    "t_end": 2e5,
-    "save_interval": 1000
+    "dt": 2.0,
+    "t_end": 1e6,
+    "save_interval": 5000
   },
   "physics": {
     "phi_0": 0.15,
@@ -28,13 +28,13 @@
     "c_c": 1.0
   },
   "flow": {
-    "u_inj": 1e-3
+    "u_inj": 8.8e-3
   },
   "species": [
     {
       "name": "celestite",
       "c_0": 2e-4,
-      "c_inj": 5e-4
+      "c_inj": 1e-2
     }
   ],
   "T": {

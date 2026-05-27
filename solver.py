@@ -2,7 +2,7 @@ from pathlib import Path
 import io_utils as io
 
 
-class Solver:  # TODO implement splittings! Lie, Strang, Jacobi
+class Solver:  # TODO implement cycling between fast and slow time scales.
     def __init__(self, sim_path, state, modules):  # TODO compute Da_I and Da_II at startup
         self.base = Path(sim_path)
         self.state = state

@@ -1,5 +1,6 @@
 import numpy as np
 
+FACTOR = 1
 
 def step_porosity(state, t, dt):
     """Forward Euler step on the porosity ODE.
@@ -11,6 +12,6 @@ def step_porosity(state, t, dt):
     """
     V_m = state.species["molar_volume"]
 
-    dphi_dt = - 1e6 * V_m * state.phi * state.R  # TODO dont forget :3
+    dphi_dt = - FACTOR * V_m * state.phi * state.R  # TODO dont forget :3
 
     state.phi[:] = state.phi + dt * dphi_dt

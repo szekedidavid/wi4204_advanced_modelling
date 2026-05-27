@@ -96,52 +96,42 @@ def plot_1d(state, path, step):
     r_phys = state.grid * state.r_c
     r_int  = r_phys[s]
 
-    fig, axs = plt.subplots(3, 3, figsize=(15, 12))
+    plt.rcParams.update({"font.size": 14, "axes.titlesize": 15, "axes.labelsize": 14,
+                         "xtick.labelsize": 12, "ytick.labelsize": 12})
 
+    fig, axs = plt.subplots(2, 3, figsize=(16, 9))
 
-    axs[0,0].plot(r_phys, state.T - 273.15,              color="tab:red")
-    axs[0,0].set_title("Temperature (°C)")
-    axs[0,0].set_ylabel("T")
+    axs[0,0].plot(r_phys, state.T - 273.15,                   color="tab:red")
+    axs[0,0].set_title("Temperature")
+    axs[0,0].set_ylabel(r"$T$ (°C)")
 
-    axs[0,1].plot(r_phys, state.c * state.c_c,           color="tab:blue")
-    axs[0,1].set_title("Concentration (mol/kgw)")
-    axs[0,1].set_ylabel("c")
+    axs[0,1].plot(r_phys, state.c * state.c_c,                color="tab:blue")
+    axs[0,1].set_title("Concentration")
+    axs[0,1].set_ylabel(r"$C$ (mol kg$_w^{-1}$)")
 
-    axs[0,2].plot(r_phys, state.p * state.mu[0] / state.t_c, color="tab:green")
-    axs[0,2].set_title("Pressure (Pa)")
-    axs[0,2].set_ylabel("p")
+    axs[0,2].plot(r_int,  state.R[s],                         color="tab:brown")
+    axs[0,2].set_title("Precipitation rate")
+    axs[0,2].set_ylabel(r"$S_i$ (mol kg$_w^{-1}$ s$^{-1}$)")
 
-    axs[1,0].plot(r_phys, state.u * state.r_c / state.t_c,   color="tab:orange")
-    axs[1,0].set_title("Velocity (m/s)")
-    axs[1,0].set_ylabel("u")
+    axs[1,0].plot(r_int,  state.phi[s],                       color="tab:purple")
+    axs[1,0].set_title("Porosity")
+    axs[1,0].set_ylabel(r"$\phi$ (-)")
 
-    axs[1,1].plot(r_int,  state.phi[s],                  color="tab:purple")
-    axs[1,1].set_title("Porosity (-)")
-    axs[1,1].set_ylabel("phi")
+    axs[1,1].plot(r_phys, state.k_hat * state.r_c**2,         color="tab:cyan")
+    axs[1,1].set_title("Permeability")
+    axs[1,1].set_ylabel(r"$k$ (m$^2$)")
 
-    axs[1,2].plot(r_int,  state.R[s],                    color="tab:brown")
-    axs[1,2].set_title("Precipitation rate (mol/kgw/s)")
-    axs[1,2].set_ylabel("R")
-
-    axs[2,0].plot(r_phys, state.k_hat * state.r_c**2,    color="tab:cyan")
-    axs[2,0].set_title("Permeability (m²)")
-    axs[2,0].set_ylabel("k")
-
-    axs[2,1].plot(r_phys, state.alpha_hat,               color="tab:olive")
-    axs[2,1].set_title("Thermal diffusivity (-)")
-    axs[2,1].set_ylabel("alpha")
-
-    axs[2,2].plot(r_phys, state.gamma,                   color="tab:gray")
-    axs[2,2].set_title("Heat advection coefficient (-)")
-    axs[2,2].set_ylabel("gamma")
+    axs[1,2].plot(r_phys, state.p * state.mu[0] / state.t_c,  color="tab:green")
+    axs[1,2].set_title("Pressure")
+    axs[1,2].set_ylabel(r"$p$ (Pa)")
 
     for ax in axs.flat:
-        ax.set_xlabel("r (m)")
+        ax.set_xlabel(r"$r$ (m)")
 
     plt.tight_layout()
-    plt.savefig(path / f"plot_{step}.png")
+    plt.savefig(path / f"plot_{step}.png", dpi=150)
     plt.close()
-
+    # plt.rcParams.update(plt.rcParamsDefault)
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, o):
