@@ -47,3 +47,6 @@ class Solver:  # TODO implement cycling between fast and slow time scales.
                 io.plot_1d(self.state, self.base / "plots", n)
                 # io.animate_live(self.state, n)
                 print(f"step {n}/{self.n_steps}")
+
+        io.plot_porosity_over_time(self.base)
+        io.plot_permeability_over_time(self.base)

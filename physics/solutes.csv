@@ -1,2 +1,4 @@
 name,molar_volume,A_arrhenius,Ea,SA
 celestite,4.61e-5,4.65e-2,34000,1
+clogging,1e-5,5e-7,10000,1
+max_clogging, 1e-5, 5e-7, 0, 1

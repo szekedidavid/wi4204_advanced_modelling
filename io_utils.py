@@ -65,6 +65,7 @@ def save_outputs_hdf5(state, base_path, step, t=None, dimensionless=True):
             "r":   state.grid,
             "phi": state.phi[s],
             "R":   state.R[s],
+            "k":   state.k_hat[s],
         }
     else:
         data = {
@@ -75,6 +76,7 @@ def save_outputs_hdf5(state, base_path, step, t=None, dimensionless=True):
             "r":   state.grid,
             "phi": state.phi[s],
             "R":   state.R[s],
+            "k":   state.k_hat[s] * state.r_c**2,
         }
 
     with h5py.File(path, "a") as f:
@@ -132,6 +134,67 @@ def plot_1d(state, path, step):
     plt.savefig(path / f"plot_{step}.png", dpi=150)
     plt.close()
     # plt.rcParams.update(plt.rcParamsDefault)
+
+def _plot_field_over_time(base_path, key, ylabel, name, fname, logy=False):
+    """Read the saved snapshots and plot how an interior field evolves in time.
+
+    Left:  field at the well and the domain minimum vs time.
+    Right: field(r) profiles at a handful of times (coloured by time).
+    """
+    h5_path = Path(base_path) / "data" / "outputs_dimensional.h5"
+    if not h5_path.exists():
+        return
+
+    with h5py.File(h5_path, "r") as f:
+        keys  = list(f.keys())
+        t     = np.array([f[k].attrs["t"] for k in keys])
+        order = np.argsort(t)
+        t     = t[order]
+        keys  = [keys[i] for i in order]
+        field = np.array([f[k][key][:] for k in keys])   # (n_t, nr_interior)
+        r     = f[keys[0]]["r"][:]
+
+    r_int = r[1:-1]   # interior fields are saved on slice 1:-1
+    out = Path(base_path) / "plots"
+    out.mkdir(parents=True, exist_ok=True)
+
+    fig, axs = plt.subplots(1, 2, figsize=(14, 5))
+
+    axs[0].plot(t, field[:, 0],       color="tab:purple", label=r"at well ($r\approx r_0$)")
+    axs[0].plot(t, field.min(axis=1), color="tab:red", ls="--", label="domain minimum")
+    axs[0].set_xlabel(r"$t$ (s)")
+    axs[0].set_ylabel(ylabel)
+    axs[0].set_title(f"{name} over time")
+    axs[0].legend()
+
+    idx  = np.linspace(0, len(t) - 1, min(len(t), 6)).astype(int)
+    cmap = plt.cm.viridis
+    for j, i in enumerate(idx):
+        axs[1].plot(r_int, field[i], color=cmap(j / max(len(idx) - 1, 1)),
+                    label=f"t={t[i]:.1f}s")
+    axs[1].set_xlabel(r"$r$ (m)")
+    axs[1].set_ylabel(ylabel)
+    axs[1].set_title(f"{name} profile")
+    axs[1].legend(fontsize=10)
+
+    if logy:
+        axs[0].set_yscale("log")
+        axs[1].set_yscale("log")
+
+    plt.tight_layout()
+    plt.savefig(out / fname, dpi=150)
+    plt.close()
+
+
+def plot_porosity_over_time(base_path):
+    _plot_field_over_time(base_path, "phi", r"$\phi$ (-)", "Porosity",
+                          "porosity_over_time.png")
+
+
+def plot_permeability_over_time(base_path):
+    _plot_field_over_time(base_path, "k", r"$k$ (m$^2$)", "Permeability",
+                          "permeability_over_time.png", logy=True)
+
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, o):
