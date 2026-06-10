@@ -3,18 +3,11 @@ from pathlib import Path
 
 SPECIES_DB = Path(__file__).parent / "solutes.csv"
 
-_FLOAT_FIELDS = {
-    "molar_volume", "nu", "A_arrhenius", "Ea", "theta", "eta", "SA",
-    "A1", "A2", "A3", "A4", "A5", "A6"
-}
+_FLOAT_FIELDS = {"molar_volume", "A_arrhenius", "Ea", "SA"}
+_NU_PREFIX    = "nu_"
 
 
 def load_species(name):
-    """Load a single species by name from solutes.csv.
-
-    Returns a dict with all parameters as floats.
-    Raises KeyError if the species is not found.
-    """
     with open(SPECIES_DB, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -24,3 +17,28 @@ def load_species(name):
                     for k, v in row.items()
                 }
     raise KeyError(f"Species '{name}' not found in {SPECIES_DB}")
+
+
+def load_precipitate(name, solute_names):
+    with open(SPECIES_DB, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row["name"].strip().lower() != name.strip().lower():
+                continue
+            out = {"name": name, "nu": {}}
+            for k, v in row.items():
+                v = v.strip()
+                if k == "name":
+                    continue
+                if k.startswith(_NU_PREFIX):
+                    sname = k[len(_NU_PREFIX):]
+                    if sname in solute_names:
+                        out["nu"][sname] = int(float(v))
+                elif k in _FLOAT_FIELDS:
+                    out[k] = float(v)
+            return out
+    raise KeyError(f"Precipitate '{name}' not found in {SPECIES_DB}")
+
+
+def load_precipitates(names, solute_names):
+    return [load_precipitate(n, solute_names) for n in names]

@@ -1,2 +1,4 @@
-name,molar_volume,A_arrhenius,Ea,SA
-celestite,4.61e-5,4.65e-2,34000,1
+name,nu_Sr2+,nu_SO42-,nu_Na+,nu_Cl-,molar_volume,A_arrhenius,Ea,SA
+celestite,1,1,0,0,4.61e-5,4.65e-2,3.4e4,1.0
+halite,0,0,1,1,2.70e-5,1.60e0,7.4e3,1.0
+thenardite,0,1,2,0,5.28e-5,3.55e-3,4.2e4,1.0
