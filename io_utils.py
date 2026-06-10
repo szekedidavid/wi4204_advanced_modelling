@@ -93,20 +93,19 @@ def plot_1d(state, path, step):
     path.mkdir(parents=True, exist_ok=True)
 
     s      = slice(1, -1)
-    r_phys = state.grid * state.r_c
-    r_int  = r_phys[s]
+    r_int  = state.grid[s] * state.r_c
 
     plt.rcParams.update({"font.size": 14, "axes.titlesize": 15, "axes.labelsize": 14,
                          "xtick.labelsize": 12, "ytick.labelsize": 12})
 
     fig, axs = plt.subplots(2, 3, figsize=(16, 9))
 
-    axs[0,0].plot(r_phys, state.T - 273.15, color="tab:red")
+    axs[0,0].plot(r_int, state.T[s] - 273.15, color="tab:red")
     axs[0,0].set_title("Temperature")
     axs[0,0].set_ylabel(r"$T$ (°C)")
 
     for s_idx, name in enumerate(state.solute_names):
-        axs[0,1].plot(r_phys, state.c[s_idx] * state.c_c, label=name)
+        axs[0,1].plot(r_int, state.c[s_idx, s] * state.c_c, label=name)
     axs[0,1].set_title("Concentration")
     axs[0,1].set_ylabel(r"$C$ (mol kg$_w^{-1}$)")
     axs[0,1].legend(fontsize=10)
@@ -117,17 +116,17 @@ def plot_1d(state, path, step):
     axs[0,2].set_title("Precipitation rate")
     axs[0,2].set_ylabel(r"$R$ (mol kg$_w^{-1}$ s$^{-1}$)")
     axs[0,2].legend(fontsize=10)
-    # axs[0,2].set_yscale("log")
+    axs[0,2].set_yscale("symlog", linthresh=1e-13)
 
     axs[1,0].plot(r_int, state.phi[s], color="tab:purple")
     axs[1,0].set_title("Porosity")
     axs[1,0].set_ylabel(r"$\phi$ (-)")
 
-    axs[1,1].plot(r_phys, state.k_hat * state.r_c**2, color="tab:cyan")
+    axs[1,1].plot(r_int, state.k_hat[s] * state.r_c**2, color="tab:cyan")
     axs[1,1].set_title("Permeability")
     axs[1,1].set_ylabel(r"$k$ (m$^2$)")
 
-    axs[1,2].plot(r_phys, state.p * state.mu[0] / state.t_c, color="tab:green")
+    axs[1,2].plot(r_int, state.p[s] * state.mu[0] / state.t_c, color="tab:green")
     axs[1,2].set_title("Pressure")
     axs[1,2].set_ylabel(r"$p$ (Pa)")
 
@@ -137,7 +136,6 @@ def plot_1d(state, path, step):
     plt.tight_layout()
     plt.savefig(path / f"plot_{step}.png", dpi=150)
     plt.close()
-
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, o):

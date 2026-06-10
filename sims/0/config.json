@@ -6,7 +6,8 @@
   },
   "time": {
     "dt_fast": 0.5,
-    "t_fast": 1e4,
+    "t_fast_init": 5e5,
+    "t_fast": 5e4,
     "dt_slow": 3.15e7,
     "t_slow": 9.5e8,
     "save_interval": 1

@@ -28,5 +28,5 @@ def update_transport(state, t):
 def update_reactions(state, t):
     state.R[:] = reaction_rate(
         state.c, state.T,
-        state.precipitates, state.solute_index, state.c_c
+        state.precipitates, state.solute_index, state.c_c, state.c_0
     )
