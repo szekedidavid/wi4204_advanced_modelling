@@ -1,17 +1,13 @@
 import numpy as np
 
-FACTOR = 1
 
 def step_porosity(state, t, dt):
-    """Forward Euler step on the porosity ODE.
+    """Exact solution of dphi/dt = -phi * sum_i(V_m_i * R_i) with R frozen.
 
-    dphi/dt = -V_m * R
-
-    where R [mol / kgw / s] is the net precipitation rate (positive = precipitation)
-    and V_m [m^3 / mol] is the molar volume of the precipitating species.
+    Since R is frozen over the interval, this is phi(t+dt) = phi(t) * exp(-Vr * dt)
+    where Vr = sum_i(V_m_i * R_i).
     """
-    V_m = state.species["molar_volume"]
+    V_m = np.array([p["molar_volume"] for p in state.precipitates])  # (n_precip,)
+    Vr  = V_m @ state.R                                               # (nr,)
 
-    dphi_dt = - FACTOR * V_m * state.phi * state.R  # TODO dont forget :3
-
-    state.phi[:] = state.phi + dt * dphi_dt
+    state.phi[:] = state.phi * np.exp(-Vr * dt)

@@ -5,9 +5,11 @@
     "nr": 400
   },
   "time": {
-    "dt": 0.5,
-    "t_end": 2e5,
-    "save_interval": 1000
+    "dt_fast": 0.5,
+    "t_fast": 1e4,
+    "dt_slow": 3.15e7,
+    "t_slow": 9.5e8,
+    "save_interval": 1
   },
   "physics": {
     "phi_0": 0.15,
@@ -30,10 +32,10 @@
     "u_inj": 1e-3
   },
   "solutes": [
-    {"name": "Sr2+",  "D": 7.94e-10, "c_0": 2e-4, "c_inj": 1e-4},
-    {"name": "SO42-", "D": 1.07e-9,  "c_0": 2e-4, "c_inj": 1e-2},
-    {"name": "Na+",   "D": 1.33e-9,  "c_0": 1e-2, "c_inj": 1e-3},
-    {"name": "Cl-",   "D": 2.03e-9,  "c_0": 1e-2, "c_inj": 1e-3}
+    {"name": "Sr2+",  "D": 7.94e-10, "c_0": 1.946e-4, "c_inj": 1e-2},
+    {"name": "SO42-", "D": 1.07e-9,  "c_0": 7.978e-2, "c_inj": 1e-1},
+    {"name": "Na+",   "D": 1.33e-9,  "c_0": 1.832e-1, "c_inj": 1.84e-1},
+    {"name": "Cl-",   "D": 2.03e-9,  "c_0": 3.912e-3, "c_inj": 4e-3}
   ],
   "precipitates": ["celestite", "halite", "thenardite"],
   "T": {
